@@ -1,7 +1,9 @@
 
 package application;
-	
+
+
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.stage.Stage;
 import javafx.scene.Group;
 import javafx.scene.Scene;
@@ -9,13 +11,21 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.*;
 import javafx.scene.text.*;
+import javafx.geometry.*;
+import java.util.Random;
 
 
 public class Main extends Application {
 	private obst Ob1;
 	private playChar player;
 	private obst Ob2;
+	private Text message;
+	private Text score;
+	private Text scoreboard;
 	int flag = 0;
+	boolean play = false;
+	int scorevalue = 0;
+	int speed;
 	public void start(Stage primaryStage) {
 		try {
 			//playChar play = new playChar();
@@ -26,9 +36,9 @@ public class Main extends Application {
 			
 			player.setScaleX(0.25);
 			player.setScaleY(0.25);
-			player.setTranslateY(30);
+			//player.setTranslateY(30);
 
-			
+			player.setTranslateY(30);
 			player.setTranslateX(-50);
 			
 			Ob1.setScaleY(0.25);
@@ -42,34 +52,23 @@ public class Main extends Application {
 			Ob2.setTranslateY(300);
 			Ob2.setTranslateX(300);
 			Rectangle Ground = new Rectangle(0,450,500,50);
-			Ob1.reset();
+			Ob1.reset(0);
+			Ob2.reset(0);
+			
+			message = new Text(30,200,"Press SPACE to Start");
+			message.setFont(new Font(50));
+			
+			score = new Text(25,25,"");
+			
+			scoreboard = new Text(200,300,"");
 			
 			
-			Group root = new Group(Ob1,Ob2,player,Ground);
+			Group root = new Group(message,score,scoreboard,Ob1,Ob2,player,Ground);
 			Scene scene = new Scene(root ,500,500);
 			
 			scene.setOnKeyPressed(this::processGame);
-			Thread thread = new Thread() {
-				public void run() {
-					while(0 < 1) {
-						Ob1.moveObs();
-						//Ob2.moveSub(Ob1.currentX(), 50);
-						
-						if(Ob1.currentX() < -150)
-							Ob1.reset();
-
-						Ob2.moveObs();
-						//Ob2.moveSub(Ob1.currentX(), 50);
-						
-						if(Ob2.currentX() < -450)
-							Ob2.reset();
-						try{ Thread.sleep(100);}
-						catch(InterruptedException e) {};
-					}
-				};
-			};
-			thread.setDaemon(true);
-			thread.start();
+			
+			
 			primaryStage.setTitle("Avoid ");
 			primaryStage.setScene(scene);
 			primaryStage.show();
@@ -82,43 +81,134 @@ public class Main extends Application {
 	
 	public static void main(String[] args) {
 		launch(args);
-		int i = 0;
+
 		
 	}
 	public void processGame(KeyEvent event) {
 		
 		
-		Thread thread1 = new Thread() {
+		Thread thread1 = new Thread(new Runnable() {
+			@Override
 			public void run() {
-				for(int i = 0;i <= 120; i++) {		
-					
-					player.jump(player.calcCor(i));
-					//System.out.println();
-					
-					try{ Thread.sleep(20);}
-					catch(InterruptedException e) {};
-				}
-				flag = 0;
-			};
-		
-		};
+			for(int i = 0;i <= 100; i++) {	
+				int j = i;
+				
+				
+				Platform.runLater(new Runnable() {
+					@Override
+					public void run(){
+						player.jump(player.calcCor(j));
+					}
+				});
+				try{ Thread.sleep(20);}
+				catch(InterruptedException e) {};
+			}
+			flag = 0;
+			}
+		});
 		thread1.setDaemon(true);
+
 		switch(event.getCode()) {
 		case UP:
-			if(flag == 0) {
+			if(flag == 0 && play == true) {
 				
 				flag = 1;
 				
 				thread1.start();
 			}
 			break;
-		
+		case SPACE:
+			
+			if(play == false && flag == 0) {
+				startGame();
+				
+				Thread thread = new Thread(new Runnable() {
+					@Override
+					public void run() {
+						Random rand = new Random();
+						
+					while(play == true) {	
+						Platform.runLater(new Runnable() {
+							@Override
+							public void run() {
+								
+									Ob1.moveObs();
+									//Ob2.moveSub(Ob1.currentX(), 50);
+									
+									if(Ob1.currentX() >= -160 && Ob1.currentX() < -150) {
+										//Ob1.reset(0);
+										scorevalue += 1;
+										score.setText("Score: " + scorevalue);
+									}
+
+									Ob2.moveObs();
+									//Ob2.moveSub(Ob1.currentX(), 50);
+									
+									if(Ob2.currentX() < -450) {
+										
+										Ob1.reset(0);
+						
+										Ob2.reset(Ob1.currentX() - 350 - rand.nextInt(120));
+										scorevalue += 1;
+										score.setText("Score: " + scorevalue);
+									}
+									//System.out.println(Ob2.currentX());
+									if(-70 < Ob1.currentX() && Ob1.currentX() < 0 && player.currentY() > -62.5)
+										endGame();
+									if(-370 < Ob2.currentX() && Ob2.currentX() < -300 && player.currentY() > -62.5)
+										endGame();
+									
+									//try{ Thread.sleep(10);}
+									//catch(InterruptedException e) {};
+									if(scorevalue < 50) speed = scorevalue;
+							};
+							
+						});
+						try{ Thread.sleep(100 - speed);}
+						//try{ Thread.sleep(100);}
+						catch(InterruptedException e) {};
+					}
+					}
+				});
+				thread.setDaemon(true);
+				thread.start();
+			}
+			break;
+		case ESCAPE:
+			endGame();
+			
+			break;
 		default:
 			
 		
 		}
+	}	
 	
-	}
+	 public void startGame() {
+		 play = true;
+		 scorevalue = 0;
+		 Ob1.reset(0);
+		 Ob2.reset(0);
+		 //player.setTranslateY(player.currentY());
+		 //System.out.println(player.currentY());
+		 player.setTranslateY(30 - player.currentY());
+		 
+		 message.setText("");
+		 scoreboard.setText("");
+		 score.setText("Score: 0");
+		 score.setFont(new Font(20));
+	 }
+	 public void endGame() {
+		 play = false;
+	 	 score.setText("");
+		 message.setText("Press Space to Start");
+		 scoreboard.setText("Score: " + scorevalue);
+		 scoreboard.setFont(new Font(20));
+		 //System.out.println(player.currentY());
+		 
+	 }
+	
+		
 }
 class playChar extends Group{
 	Circle reg1;
@@ -147,12 +237,13 @@ class playChar extends Group{
 		body.setTranslateY(body.getTranslateY() - change);
 		reg1.setTranslateY(reg1.getTranslateY() - change);
 		reg2.setTranslateY(reg2.getTranslateY() - change);
-		//System.out.println(body.getTranslateY());
 	}
 	public double calcCor(int i) {
-		return -0.1*i + 6;
+		return -0.1*i + 5;
 	}
-
+	public double currentY() {
+		return body.getTranslateY();
+	}
 }
 
 class obst extends Group{
@@ -185,9 +276,9 @@ class obst extends Group{
 		obstr = new Group(body, line1,line2,line3,remover1, remover2);
 		getChildren().addAll(obstr);
 	}
-	public void reset() {
-		//System.out.println(obstr.getTranslateX());
-		obstr.setTranslateX(350);
+	public void reset(double state) {
+		//System.out.println(obstr.getTranslateX());      
+		obstr.setTranslateX(350 + state);
 	}
 	public void moveObs() {
 		//System.out.println(obstr.getTranslateX());
